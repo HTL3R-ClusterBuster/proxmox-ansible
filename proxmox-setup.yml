@@ -41,28 +41,3 @@
     ansible.builtin.wait_for_connection:
       delay: 10
       timeout: 300
-  - name: Another symbolic mode example, adding some permissions and removing others
-    ansible.builtin.fetch:
-      src: /etc/network/interfaces
-      dest: ~/Desktop/clb/interfaces{{ inventory_hostname }}
-      flat: true
-  - name: Insert ethXX configuration in /etc/network/interfaces
-    ansible.builtin.blockinfile:
-      path: /etc/network/interfaces
-      block: |
-        auto vmbr1
-        iface vmbr1 inet static
-                address 172.16.0.{{ octet }}/24
-                bridge-ports {{ parent1 }}
-                bridge-stp off
-                bridge-fd 0
-        auto vmbr2
-        iface vmbr2 inet static
-                address 10.30.30.{{ octet }}/24
-                bridge-ports {{ parent2 }}
-                bridge-stp off
-                bridge-fd 0
-  - name: Restart service networking
-    ansible.builtin.service:
-      name: networking
-      state: restarted
