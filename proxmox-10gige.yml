@@ -1,0 +1,35 @@
+---
+- name: Setup proxmox to a stable state
+  hosts: clb
+  remote_user: root
+
+  tasks:
+  - name: Install gcc
+    ansible.builtin.apt:
+      name: gcc
+      state: present
+  - name: Install make
+    ansible.builtin.apt:
+      name: make
+      state: present
+  - name: Download file from a intel
+    ansible.builtin.get_url:
+      url: https://downloadmirror.intel.com/738735/ixgbe-5.16.5.tar.gz
+      dest: /root/ixgbe.tar.gz
+      mode: '0777'
+  - name: Extract archive
+    ansible.builtin.unarchive:
+      src: ixgbe.tar.gz
+      remote_src: true
+      dest: /root/
+  - name: Run make install
+    ansible.builtin.shell: make install
+    args:
+      chdir: /root/ixgbe-5.16.5/src/
+  - name: Load the module using either the insmod or modprobe command
+    ansible.builtin.shell: modprobe ixgb insmod ixgb
+  - name: older ixgb drivers are removed from the kernel
+    ansible.builtin.shell: rmmod ixgb; modprobe ixgb
+  - name: Reboot a slow machine that might have lots of updates to apply
+    ansible.builtin.reboot:
+      reboot_timeout: 3600

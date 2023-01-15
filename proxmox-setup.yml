@@ -1,0 +1,68 @@
+---
+- name: Setup proxmox to a stable state
+  hosts: clb
+  remote_user: root
+
+  tasks:
+  - name: Remove wrong repo
+    ansible.builtin.apt_repository:
+      repo: deb http://archive.canonical.com/ubuntu hardy partner
+      state: absent
+  - name: Add correct repositories into sources list (1)
+    ansible.builtin.apt_repository:
+      repo: deb http://ftp.at.debian.org/debian bullseye main contrib
+      state: present
+  - name: Add correct repositories into sources list (2)
+    ansible.builtin.apt_repository:
+      repo: deb http://ftp.at.debian.org/debian bullseye-updates main contrib
+      state: present
+  - name: Add correct repositories into sources list (3)
+    ansible.builtin.apt_repository:
+      repo: deb http://security.debian.org bullseye-security main contrib
+      state: present
+  - name: Disable enterpreise package
+    ansible.builtin.apt_repository:
+      repo: deb https://enterprise.proxmox.com/debian/pve bullseye pve-enterprise
+      state: absent
+  - name: Enable community package
+    ansible.builtin.apt_repository:
+      repo: deb http://download.proxmox.com/debian/pve bullseye pve-no-subscription
+      state: present
+  - name: Update all packages to their latest version
+    ansible.builtin.apt:
+      update_cache: true
+  - name: Upgrade the OS (apt-get dist-upgrade)
+    ansible.builtin.apt:
+      upgrade: dist
+  - name: Reboot a slow machine that might have lots of updates to apply
+    ansible.builtin.reboot:
+      reboot_timeout: 3600
+  - name: Wait 300 seconds, but only start checking after 60 seconds
+    ansible.builtin.wait_for_connection:
+      delay: 10
+      timeout: 300
+  - name: Another symbolic mode example, adding some permissions and removing others
+    ansible.builtin.fetch:
+      src: /etc/network/interfaces
+      dest: ~/Desktop/clb/interfaces{{ inventory_hostname }}
+      flat: true
+  - name: Insert ethXX configuration in /etc/network/interfaces
+    ansible.builtin.blockinfile:
+      path: /etc/network/interfaces
+      block: |
+        auto vmbr1
+        iface vmbr1 inet static
+                address 172.16.0.{{ octet }}/24
+                bridge-ports {{ parent1 }}
+                bridge-stp off
+                bridge-fd 0
+        auto vmbr2
+        iface vmbr2 inet static
+                address 10.30.30.{{ octet }}/24
+                bridge-ports {{ parent2 }}
+                bridge-stp off
+                bridge-fd 0
+  - name: Restart service networking
+    ansible.builtin.service:
+      name: networking
+      state: restarted
